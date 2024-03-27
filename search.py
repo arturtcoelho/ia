@@ -1,3 +1,5 @@
+from util import Stack, Queue, PriorityQueue
+from game import Directions
 # search.py
 # ---------
 # Licensing Information:  You are free to use or extend these projects for
@@ -62,42 +64,106 @@ class SearchProblem:
         util.raiseNotDefined()
 
 
+
+
+def getPath(start, end, connections):
+    current = end
+    queue = Queue()
+
+    while current != start:
+        queue.push(connections[current][1])
+        current = connections[current][0]
+
+    return queue.list
+
 def tinyMazeSearch(problem):
     """
     Returns a sequence of moves that solves tinyMaze.  For any other maze, the
     sequence of moves will be incorrect, so only use this for tinyMaze.
     """
-    from game import Directions
     s = Directions.SOUTH
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
 def depthFirstSearch(problem: SearchProblem):
-    """
-    Search the deepest nodes in the search tree first.
+    stack       = Stack()
+    visited     = []
+    connections = {}
 
-    Your search algorithm needs to return a list of actions that reaches the
-    goal. Make sure to implement a graph search algorithm.
+    start  = problem.getStartState()
+    connections[start] = None
 
-    To get started, you might want to try some of these simple commands to
-    understand the search problem that is being passed in:
+    stack.push(start)
 
-    print("Start:", problem.getStartState())
-    print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
-    print("Start's successors:", problem.getSuccessors(problem.getStartState()))
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    while not stack.isEmpty():
+        current = stack.pop()
+
+        if problem.isGoalState(current):
+            break
+
+        if current not in visited:
+            visited.append(current)
+            for state, direction, _ in problem.getSuccessors(current):
+                if state not in visited:
+                    connections[state] = (current, direction)
+                    stack.push(state)
+
+    return getPath(start, current, connections)
 
 def breadthFirstSearch(problem: SearchProblem):
-    """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    queue = Queue()
+    visited = []
+    connections = {}
+
+    start = problem.getStartState()
+    connections[start] = None
+
+    queue.push(start)
+    visited.append(start)
+
+    while not queue.isEmpty():
+        current = queue.pop()
+
+        if problem.isGoalState(current):
+            break
+
+        for state, direction, _ in problem.getSuccessors(current):
+            if state not in visited:
+                visited.append(state)
+                connections[state] = (current, direction)
+                queue.push(state)
+
+    return getPath(start, current, connections)
+
 
 def uniformCostSearch(problem: SearchProblem):
-    """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pqueue = PriorityQueue()
+    costs = {}                             # (state : minumum current cost to get to state)
+    connections = {}                       # (cur : (prev, direction)) pairs
+
+    start = problem.getStartState()
+    connections[start] = None              # no previous state
+
+    pqueue.push(start, 0)
+    costs[start] = 0
+
+    while not pqueue.isEmpty():
+        current = pqueue.pop()
+
+        if problem.isGoalState(current):
+            break
+
+        for state, direction, cost in problem.getSuccessors(current):
+            path_cost = cost + costs[current]
+
+            # only enqueue and update if not visited or current cost < previous cost
+            if state not in costs or path_cost < costs[state]:
+                connections[state] = (current, direction)
+                costs[state] = path_cost
+                pqueue.update(state, path_cost)
+
+
+    return getPath(start, current, connections)
 
 def nullHeuristic(state, problem=None):
     """
@@ -107,9 +173,32 @@ def nullHeuristic(state, problem=None):
     return 0
 
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
-    """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pqueue = PriorityQueue()
+    costs = {}                             # (state : minumum current cost to get to state)
+    connections = {}                       # (cur : (prev, direction)) pairs
+
+    start = problem.getStartState()
+    connections[start] = None              # no previous state
+
+    pqueue.push(start, 0)                  # no reason to calculate start heuristic
+    costs[start] = 0
+
+    while not pqueue.isEmpty():
+        current = pqueue.pop()
+
+        if problem.isGoalState(current):
+            break
+
+        for state, direction, cost in problem.getSuccessors(current):
+            path_cost = cost + costs[current]
+
+            # only enqueue and update if not visited or current cost < previous cost
+            if state not in costs or path_cost < costs[state]:
+                connections[state] = (current, direction)
+                costs[state] = path_cost
+                pqueue.update(state, path_cost + heuristic(state, problem))
+
+    return getPath(start, current, connections)
 
 
 # Abbreviations
